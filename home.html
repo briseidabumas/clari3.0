@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inicio - Clari3.0</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: #f0f2f5;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            padding-top: 70px;
+        }
+
+        .navbar-custom {
+            background: white;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            height: 60px;
+        }
+
+        .navbar-brand {
+            font-weight: 800;
+            color: #1877F2 !important;
+            font-size: 1.8rem;
+        }
+
+        .nav-icon {
+            font-size: 1.5rem;
+            color: #65676b;
+            padding: 0 20px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .nav-icon.active {
+            color: #1877F2;
+            border-bottom: 3px solid #1877F2;
+        }
+
+        .nav-icon:hover {
+            background: #f0f2f5;
+            border-radius: 8px;
+        }
+
+        .nav-profile-img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+        }
+
+        .feed-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .post-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .post-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .post-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .post-info h6 {
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .post-time {
+            font-size: 0.8rem;
+            color: #65676b;
+        }
+
+        .post-content {
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+
+        .post-image {
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-custom d-flex justify-content-between px-3 aling-items-center">
+        <!-- Logo -->
+        <div class="d-flex align-items-center">
+            <a class="navbar-brand" href="home.html">Clari3.0</a>
+        </div>
+
+        <!-- Iconos Centrales (LIMPIO) -->
+        <div class="d-none d-md-flex">
+            <div class="nav-icon active" title="Inicio"><i class="fas fa-home"></i></div>
+        </div>
+
+        <!-- Perfil y Menú -->
+        <div class="d-flex align-items-center gap-3">
+            <a href="reds.html" class="text-decoration-none">
+                <div class="d-flex align-items-center gap-2 bg-light rounded-pill px-2 py-1" style="cursor: pointer;">
+                    <img src="https://placehold.co/40" class="nav-profile-img" id="navUserPhoto">
+                    <span class="fw-bold text-dark d-none d-lg-block me-2" id="navUserName">Perfil</span>
+                </div>
+            </a>
+            <button class="btn btn-light rounded-circle" id="logoutBtn" title="Cerrar Sesión">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Contenido: Feed -->
+    <div class="container feed-container mt-4">
+
+        <!-- Crear Post (Acceso directo) -->
+        <div class="post-card d-flex gap-3 align-items-center p-3">
+            <a href="reds.html">
+                <img src="https://placehold.co/40" class="nav-profile-img" id="createPostAvatar">
+            </a>
+            <a href="reds.html" class="w-100 text-decoration-none">
+                <div class="bg-light rounded-pill px-3 py-2 text-muted text-start" style="cursor: pointer;">
+                    ¿Qué estás pensando, <span id="createPostName">Usuario</span>? (Ir al perfil para publicar)
+                </div>
+            </a>
+        </div>
+
+        <!-- Muro de Publicaciones -->
+        <div id="postsFeed">
+            <div class="text-center mt-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted">Cargando publicaciones...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Comentarios (Proximamente) -->
+    <!-- Por ahora usaremos alerts o navegación, pero la estructura visual está lista -->
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+        import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+        import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+
+        // Configuración Firebase (Clari3)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCTRDKBJ7_8BP7RGd6FXFz9BfDhP9c8gbo",
+            authDomain: "clari3-5efc6.firebaseapp.com",
+            projectId: "clari3-5efc6",
+            storageBucket: "clari3-5efc6.firebasestorage.app",
+            messagingSenderId: "1085275362412",
+            appId: "1:1085275362412:web:635b48d55c59ec883d3449"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Referencias
+        const navUserPhoto = document.getElementById('navUserPhoto');
+        const navUserName = document.getElementById('navUserName');
+        const createPostAvatar = document.getElementById('createPostAvatar');
+        const createPostName = document.getElementById('createPostName');
+        const postsFeed = document.getElementById('postsFeed');
+
+        // Autenticación
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                let userPhoto = user.photoURL || 'https://placehold.co/40';
+                let userName = user.displayName || 'Usuario';
+
+                try {
+                    const userDoc = await getDoc(doc(db, "users", user.uid));
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        if (userData.photoBase64) userPhoto = userData.photoBase64;
+                        if (userData.displayName) userName = userData.displayName;
+                    }
+                } catch (e) {
+                    console.log("No se pudo cargar perfil extendido");
+                }
+
+                navUserPhoto.src = userPhoto;
+                navUserName.textContent = userName.split(' ')[0];
+                createPostAvatar.src = userPhoto;
+                createPostName.textContent = userName.split(' ')[0];
+
+                loadPosts();
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            signOut(auth).then(() => location.href = 'index.html');
+        });
+
+        // Cargar Posts
+        function loadPosts() {
+            const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
+
+            onSnapshot(q, (snapshot) => {
+                postsFeed.innerHTML = '';
+
+                if (snapshot.empty) {
+                    postsFeed.innerHTML = '<div class="alert alert-info text-center">No hay publicaciones aún.</div>';
+                    return;
+                }
+
+                snapshot.forEach((doc) => {
+                    const post = doc.data();
+                    const timeAgo = formatTime(post.timestamp);
+
+                    const html = `
+                        <div class="post-card">
+                            <div class="post-header">
+                                <img src="${post.userPhoto}" class="post-avatar">
+                                <div class="post-info">
+                                    <h6>${post.userName}</h6>
+                                    <span class="post-time">${timeAgo} <i class="fas fa-globe-americas"></i></span>
+                                </div>
+                            </div>
+                            <div class="post-content">${post.content || ''}</div>
+                            ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image">` : ''}
+                            
+                            <hr class="my-2" style="opacity: 0.1">
+                            <div class="d-flex justify-content-around">
+                                <button class="btn btn-light w-100 btn-sm text-secondary fw-bold action-btn"><i class="far fa-thumbs-up"></i> Me gusta</button>
+                                <button class="btn btn-light w-100 btn-sm text-secondary fw-bold action-btn" onclick="alert('Función de comentarios en desarrollo')"><i class="far fa-comment-alt"></i> Comentar</button>
+                            </div>
+                        </div>
+                    `;
+                    postsFeed.innerHTML += html;
+                });
+            });
+        }
+
+        // Helper tiempo
+        function formatTime(timestamp) {
+            if (!timestamp) return 'Justo ahora';
+            const date = timestamp.toDate();
+            const now = new Date();
+            const seconds = Math.floor((now - date) / 1000);
+
+            if (seconds < 60) return `${seconds}s`;
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes} min`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours} h`;
+            return date.toLocaleDateString();
+        }
+    </script>
+</body>
+
+</html>

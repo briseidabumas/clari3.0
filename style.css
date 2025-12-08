@@ -1,0 +1,266 @@
+body,
+html {
+    height: 100%;
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    overflow: hidden;
+    background: #4A148C;
+
+    /* CORRECCIÓN: Flexbox para centrar vertical y horizontalmente */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Fondo con degradado y formas */
+.background-shapes {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    background: linear-gradient(135deg, #2E004E 0%, #6A1B9A 100%);
+    overflow: hidden;
+}
+
+.shape {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.6;
+    animation: floating 10s infinite alternate;
+}
+
+.shape-1 {
+    top: -10%;
+    left: -10%;
+    width: 600px;
+    height: 600px;
+    background: #8E24AA;
+}
+
+.shape-2 {
+    bottom: -20%;
+    right: -10%;
+    width: 700px;
+    height: 700px;
+    background: #4A148C;
+}
+
+.shape-3 {
+    top: 30%;
+    left: 40%;
+    width: 400px;
+    height: 400px;
+    background: #AB47BC;
+    opacity: 0.4;
+}
+
+@keyframes floating {
+    0% {
+        transform: translate(0, 0);
+    }
+
+    100% {
+        transform: translate(30px, 30px);
+    }
+}
+
+/* Tarjeta de Login */
+.login-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 3rem;
+    width: 100%;
+    max-width: 400px;
+
+    /* CORRECCIÓN: Quitamos el posicionamiento absoluto que cortaba la tarjeta */
+    margin: 0 auto;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    color: white;
+
+    /* Opcional: Para bajarla un pelín más visualmente si lo deseas */
+    transform: translateY(20px);
+}
+
+.login-card h2 {
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 2rem;
+}
+
+/* Inputs Personalizados */
+.input-container {
+    position: relative;
+    background: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    padding: 5px 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.input-container .icon {
+    color: #6A1B9A;
+    font-size: 1.1rem;
+    width: 25px;
+    text-align: center;
+}
+
+.custom-input {
+    border: none;
+    width: 100%;
+    padding: 10px;
+    outline: none;
+    color: #333;
+    font-size: 0.95rem;
+    background: transparent;
+}
+
+.custom-input::placeholder {
+    color: #999;
+    font-weight: 500;
+}
+
+/* Opciones (Check & Link) */
+.options-row {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.form-check-input {
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.form-check-input:checked {
+    background-color: #AB47BC;
+    border-color: #AB47BC;
+}
+
+.forgot-link {
+    color: white;
+    font-weight: 600;
+    opacity: 0.9;
+    transition: opacity 0.3s;
+}
+
+.forgot-link:hover {
+    color: white;
+    opacity: 1;
+    text-decoration: underline !important;
+}
+
+/* Botones */
+.btn-login {
+    background: linear-gradient(to right, #8E24AA, #D81B60);
+    border: none;
+    color: white;
+    font-weight: 600;
+    padding: 12px;
+    width: 100%;
+    border-radius: 50px;
+    box-shadow: 0 4px 15px rgba(142, 36, 170, 0.4);
+    transition: transform 0.3s;
+}
+
+.btn-login:hover {
+    transform: translateY(-2px);
+    color: white;
+    box-shadow: 0 6px 20px rgba(142, 36, 170, 0.6);
+}
+
+/* Botones Sociales Compartidos */
+.btn-social {
+    border: none;
+    font-weight: 600;
+    padding: 10px;
+    width: 48%;
+    /* Para que quepan dos en una fila */
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.3s, box-shadow 0.3s;
+    font-size: 0.9rem;
+}
+
+.btn-social:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Estilo específico Google */
+.btn-google-custom {
+    background: white;
+    color: #333;
+}
+
+.btn-google-custom:hover {
+    background: #f8f9fa;
+}
+
+.btn-google-custom img {
+    width: 18px;
+    height: 18px;
+}
+
+/* Estilo específico Facebook */
+.btn-facebook-custom {
+    background: #1877F2;
+    color: white;
+}
+
+.btn-facebook-custom:hover {
+    background: #166fe5;
+    color: white;
+}
+
+.btn-facebook-custom i {
+    font-size: 1.1rem;
+}
+
+/* Footer Link */
+.footer-link {
+    margin-top: 20px;
+    font-size: 0.95rem;
+}
+
+.footer-link a {
+    color: white;
+    font-weight: 700;
+    text-decoration: none;
+    margin-left: 5px;
+}
+
+.footer-link a:hover {
+    text-decoration: underline;
+}
+
+/* Separador */
+.separator {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.separator::before,
+.separator::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.separator:not(:empty)::before {
+    margin-right: .5em;
+}
+
+.separator:not(:empty)::after {
+    margin-left: .5em;
+}

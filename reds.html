@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil - Clari3.0</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: #f0f2f5;
+            font-family: 'Segoe UI', sans-serif;
+            padding-top: 60px;
+        }
+
+        /* Navbar Simple */
+        .navbar-custom {
+            background: white;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Header del Perfil */
+        .profile-container {
+            background: white;
+            padding-bottom: 20px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .cover-photo {
+            height: 300px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .cover-photo:hover .edit-cover-btn {
+            display: block;
+        }
+
+        .edit-cover-btn {
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-weight: 600;
+        }
+
+        .profile-content {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 20px;
+            position: relative;
+        }
+
+        .profile-pic-container {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            border: 5px solid white;
+            position: absolute;
+            top: -130px;
+            left: 20px;
+            background: #ddd;
+            overflow: hidden;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .profile-pic {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .profile-details {
+            margin-top: 10px;
+            margin-left: 200px;
+            min-height: 80px;
+        }
+
+        .user-name {
+            font-weight: 800;
+            font-size: 2rem;
+            margin: 0;
+        }
+
+        /* Muro */
+        .feed-section {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            gap: 20px;
+        }
+
+        .sidebar {
+            width: 350px;
+            display: none;
+        }
+
+        /* Oculto por simplicidad */
+        .main-feed {
+            flex: 1;
+        }
+
+        @media (max-width: 768px) {
+            .profile-pic-container {
+                left: 50%;
+                transform: translateX(-50%);
+                top: -80px;
+                width: 140px;
+                height: 140px;
+            }
+
+            .profile-details {
+                margin-left: 0;
+                margin-top: 70px;
+                text-align: center;
+            }
+
+            .cover-photo {
+                height: 200px;
+            }
+        }
+
+        .create-post-card,
+        .post-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-custom fixed-top">
+        <div class="container-fluid px-4">
+            <a class="btn btn-outline-primary" href="home.html">
+                <i class="fas fa-arrow-left"></i> Volver al Inicio
+            </a>
+            <span class="navbar-brand fw-bold text-primary">Perfil</span>
+            <div style="width: 100px;"></div> <!-- Espaciador -->
+        </div>
+    </nav>
+
+    <!-- Cabecera de Perfil -->
+    <div class="profile-container">
+        <!-- Portada -->
+        <div class="cover-photo" id="coverPhoto" title="Clic para cambiar portada">
+            <button class="edit-cover-btn"><i class="fas fa-camera"></i> Cambiar Portada</button>
+            <input type="file" id="coverInput" hidden accept="image/*">
+        </div>
+
+        <div class="profile-content">
+            <!-- Foto de Perfil -->
+            <div class="profile-pic-container" id="avatarContainer" title="Clic para cambiar foto">
+                <img src="https://placehold.co/160" class="profile-pic" id="profilePic">
+                <input type="file" id="avatarInput" hidden accept="image/*">
+            </div>
+
+            <!-- Datos Usuario -->
+            <div class="profile-details">
+                <div class="d-flex justify-content-between align-items-end flex-wrap">
+                    <div>
+                        <h1 class="user-name" id="userName">Usuario</h1>
+                        <p class="text-muted" id="userEmail">@usuario</p>
+                    </div>
+                    <button class="btn btn-light border fw-bold" onclick="editName()">
+                        <i class="fas fa-pen"></i> Editar nombre
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenido (Crear Post + Mis Publicaciones) -->
+    <div class="container feed-section px-3">
+        <div class="main-feed">
+
+            <!-- Crear Post -->
+            <div class="create-post-card">
+                <h5 class="mb-3">Crear publicación</h5>
+                <textarea id="postContent" class="form-control mb-3" rows="3" placeholder="¿Qué estás pensando?"
+                    style="border:none; background:#f0f2f5; border-radius:10px;"></textarea>
+
+                <div id="previewContainer" class="mb-3 position-relative" style="display:none;">
+                    <img id="imagePreview" src="" style="max-height: 200px; border-radius: 10px;">
+                    <button class="btn btn-sm btn-circle btn-light position-absolute top-0 start-0 m-1"
+                        onclick="clearImage()">x</button>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                    <button class="btn btn-light text-success fw-bold"
+                        onclick="document.getElementById('postImageInput').click()">
+                        <i class="fas fa-images"></i> Foto/Video
+                    </button>
+                    <input type="file" id="postImageInput" hidden accept="image/*">
+                    <button class="btn btn-primary px-4 fw-bold" id="publishBtn">Publicar</button>
+                </div>
+            </div>
+
+            <!-- Muro (Solo mis posts) -->
+            <h4 class="fw-bold mb-3">Mis Publicaciones</h4>
+            <div id="myPostsFeed">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+
+        // Configuración (Misma que siempre)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCTRDKBJ7_8BP7RGd6FXFz9BfDhP9c8gbo",
+            authDomain: "clari3-5efc6.firebaseapp.com",
+            projectId: "clari3-5efc6",
+            storageBucket: "clari3-5efc6.firebasestorage.app",
+            messagingSenderId: "1085275362412",
+            appId: "1:1085275362412:web:635b48d55c59ec883d3449"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Variables
+        let currentUser = null;
+        let userData = {};
+        let selectedPostImage = null;
+
+        // Referencias DOM
+        const profilePic = document.getElementById('profilePic');
+        const coverPhoto = document.getElementById('coverPhoto');
+        const userName = document.getElementById('userName');
+        const userEmail = document.getElementById('userEmail');
+
+        // --- 1. AUTENTICACIÓN Y CARGA DE PERFIL ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+
+                // Cargar datos extendidos desde Firestore (donde guardaremos las fotos reales)
+                await loadUserProfile(user.uid);
+                loadMyPosts(user.uid);
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+
+        async function loadUserProfile(uid) {
+            const docRef = doc(db, "users", uid);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                userData = docSnap.data();
+            } else {
+                // Si no existe perfil en DB, usar datos básicos de Auth
+                userData = {
+                    displayName: currentUser.displayName || 'Usuario Nuevo',
+                    photoBase64: currentUser.photoURL || 'https://placehold.co/160',
+                    coverBase64: null // Sin portada
+                };
+            }
+
+            // Pintar datos
+            userName.textContent = userData.displayName || 'Usuario';
+            userEmail.textContent = currentUser.email;
+
+            if (userData.photoBase64) profilePic.src = userData.photoBase64;
+            if (userData.coverBase64) coverPhoto.style.backgroundImage = `url('${userData.coverBase64}')`;
+        }
+
+        // --- 2. GESTIÓN DE FOTOS (AVATAR Y PORTADA) ---
+
+        // Helper para leer archivo como Base64
+        const readFile = (file) => {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.readAsDataURL(file);
+            });
+        };
+
+        // Guardar Perfil en Firestore
+        async function saveUserProfile(updates) {
+            const userRef = doc(db, "users", currentUser.uid);
+            // Hacer merge para no borrar datos existentes
+            await setDoc(userRef, updates, { merge: true });
+
+            // También actualizar Auth básico por si acaso
+            if (updates.displayName) {
+                updateProfile(currentUser, { displayName: updates.displayName });
+            }
+        }
+
+        // Click en Avatar
+        document.getElementById('avatarContainer').onclick = () => document.getElementById('avatarInput').click();
+        document.getElementById('avatarInput').onchange = async (e) => {
+            if (e.target.files[0]) {
+                const base64 = await readFile(e.target.files[0]);
+                profilePic.src = base64; // Preview rápido
+                await saveUserProfile({ photoBase64: base64 }); // Guardar en DB
+            }
+        };
+
+        // Click en Portada
+        document.getElementById('coverPhoto').onclick = (e) => {
+            if (e.target === document.querySelector('.edit-cover-btn') || e.target === document.getElementById('coverPhoto')) {
+                document.getElementById('coverInput').click();
+            }
+        }
+        document.getElementById('coverInput').onchange = async (e) => {
+            if (e.target.files[0]) {
+                const base64 = await readFile(e.target.files[0]);
+                coverPhoto.style.backgroundImage = `url('${base64}')`;
+                await saveUserProfile({ coverBase64: base64 });
+            }
+        };
+
+        // Editar Nombre
+        window.editName = async () => {
+            const newName = prompt("Ingresa tu nuevo nombre:", userName.textContent);
+            if (newName && newName.trim() !== "") {
+                userName.textContent = newName;
+                await saveUserProfile({ displayName: newName });
+            }
+        };
+
+        // --- 3. PUBLICACIONES ---
+
+        // Preview imagen post
+        document.getElementById('postImageInput').onchange = async (e) => {
+            if (e.target.files[0]) {
+                selectedPostImage = await readFile(e.target.files[0]);
+                document.getElementById('imagePreview').src = selectedPostImage;
+                document.getElementById('previewContainer').style.display = 'block';
+            }
+        };
+        window.clearImage = () => {
+            selectedPostImage = null;
+            document.getElementById('postImageInput').value = '';
+            document.getElementById('previewContainer').style.display = 'none';
+        }
+
+        // Publicar Post
+        document.getElementById('publishBtn').onclick = async () => {
+            const content = document.getElementById('postContent').value;
+            if (!content.trim() && !selectedPostImage) return;
+
+            const btn = document.getElementById('publishBtn');
+            btn.disabled = true;
+            btn.textContent = 'Publicando...';
+
+            try {
+                // Guardamos la foto actual del perfil para que salga en el post
+                const currentAvatar = userData.photoBase64 || 'https://placehold.co/40';
+
+                await addDoc(collection(db, "posts"), {
+                    userId: currentUser.uid,
+                    userName: userData.displayName || 'Usuario',
+                    userPhoto: currentAvatar, // Guardamos snapshot de la foto actual
+                    content: content,
+                    imageUrl: selectedPostImage,
+                    timestamp: serverTimestamp()
+                });
+
+                // Reset
+                document.getElementById('postContent').value = '';
+                clearImage();
+                btn.disabled = false;
+                btn.textContent = 'Publicar';
+                alert('¡Publicado!');
+            } catch (e) {
+                console.error(e);
+                alert('Error al publicar');
+                btn.disabled = false;
+            }
+        };
+
+        // Cargar Mis Posts
+        function loadMyPosts(uid) {
+            const q = query(collection(db, "posts"), where("userId", "==", uid), orderBy("timestamp", "desc"));
+
+            onSnapshot(q, (snapshot) => {
+                const container = document.getElementById('myPostsFeed');
+                container.innerHTML = '';
+
+                if (snapshot.empty) {
+                    container.innerHTML = '<p class="text-muted text-center">No has publicado nada aún.</p>';
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const post = doc.data();
+                    const html = `
+                        <div class="post-card">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <img src="${post.userPhoto}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                                <div>
+                                    <h6 class="m-0 fw-bold">${post.userName}</h6>
+                                    <small class="text-muted">Tus publicaciones</small>
+                                </div>
+                            </div>
+                            <div class="mb-2">${post.content || ''}</div>
+                            ${post.imageUrl ? `<img src="${post.imageUrl}" class="w-100 rounded">` : ''}
+                        </div>
+                    `;
+                    container.innerHTML += html;
+                });
+            });
+        }
+    </script>
+</body>
+
+</html>

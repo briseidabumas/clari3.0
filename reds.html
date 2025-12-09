@@ -34,24 +34,14 @@
             background-size: cover;
             background-position: center;
             position: relative;
-            cursor: pointer;
         }
 
         .cover-photo:hover .edit-cover-btn {
-            display: block;
+            display: none;
         }
 
         .edit-cover-btn {
             display: none;
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.6);
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            font-weight: 600;
         }
 
         .profile-content {
@@ -158,9 +148,7 @@
     <!-- Cabecera de Perfil -->
     <div class="profile-container">
         <!-- Portada -->
-        <div class="cover-photo" id="coverPhoto" title="Clic para cambiar portada">
-            <button class="edit-cover-btn"><i class="fas fa-camera"></i> Cambiar Portada</button>
-            <input type="file" id="coverInput" hidden accept="image/*">
+        <div class="cover-photo" id="coverPhoto">
         </div>
 
         <div class="profile-content">
@@ -224,9 +212,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-        // Configuración (Misma que siempre)
+        // Configuración
         const firebaseConfig = {
             apiKey: "AIzaSyCTRDKBJ7_8BP7RGd6FXFz9BfDhP9c8gbo",
             authDomain: "clari3-5efc6.firebaseapp.com",
@@ -238,12 +225,10 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
 
         // Variables
         let currentUser = null;
-        let userData = {};
-        let selectedPostImage = null;
+        let selectedPostImageFile = null;
 
         // Referencias DOM
         const profilePic = document.getElementById('profilePic');
@@ -255,8 +240,6 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-
-                // Cargar datos extendidos desde Firestore (donde guardaremos las fotos reales)
                 await loadUserProfile(user.uid);
                 loadMyPosts(user.uid);
             } else {
@@ -265,72 +248,78 @@
         });
 
         async function loadUserProfile(uid) {
-            const docRef = doc(db, "users", uid);
-            const docSnap = await getDoc(docRef);
+            try {
+                const response = await fetch(`php/get_user.php?firebase_uid=${uid}`);
+                const result = await response.json();
 
-            if (docSnap.exists()) {
-                userData = docSnap.data();
-            } else {
-                // Si no existe perfil en DB, usar datos básicos de Auth
-                userData = {
-                    displayName: currentUser.displayName || 'Usuario Nuevo',
-                    photoBase64: currentUser.photoURL || 'https://placehold.co/160',
-                    coverBase64: null // Sin portada
-                };
+                if (result.success) {
+                    const userData = result.user;
+                    userName.textContent = userData.nombre_completo || 'Usuario';
+                    userEmail.textContent = userData.correo;
+
+                    if (userData.foto_perfil_url) profilePic.src = userData.foto_perfil_url;
+                    // DB Schema no tiene cover, así que lo ignoramos o usamos localStorage si quisieran.
+                    // Por ahora solo foto perfil.
+                } else {
+                    console.log("Usuario no encontrado en MySQL, sincronizando...");
+                    // Podríamos llamar a sync aquí, pero app.js ya lo hace al login.
+                }
+            } catch (e) {
+                console.error("Error cargando perfil:", e);
             }
-
-            // Pintar datos
-            userName.textContent = userData.displayName || 'Usuario';
-            userEmail.textContent = currentUser.email;
-
-            if (userData.photoBase64) profilePic.src = userData.photoBase64;
-            if (userData.coverBase64) coverPhoto.style.backgroundImage = `url('${userData.coverBase64}')`;
         }
 
-        // --- 2. GESTIÓN DE FOTOS (AVATAR Y PORTADA) ---
+        // --- 2. GESTIÓN DE FOTOS (UPLOAD => UPDATE) ---
 
-        // Helper para leer archivo como Base64
-        const readFile = (file) => {
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
-                reader.readAsDataURL(file);
+        // Función genérica para subir archivo
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('php/upload.php', {
+                method: 'POST',
+                body: formData
             });
-        };
+            return await response.json(); // { success: true, url: '...' }
+        }
 
-        // Guardar Perfil en Firestore
-        async function saveUserProfile(updates) {
-            const userRef = doc(db, "users", currentUser.uid);
-            // Hacer merge para no borrar datos existentes
-            await setDoc(userRef, updates, { merge: true });
+        // Actualizar Perfil en MySQL
+        async function updateProfileData(updates) {
+            updates.firebase_uid = currentUser.uid;
 
-            // También actualizar Auth básico por si acaso
+            await fetch('php/update_profile.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updates)
+            });
+
+            // También actualizar Auth Firebase visualmente
             if (updates.displayName) {
                 updateProfile(currentUser, { displayName: updates.displayName });
             }
         }
 
-        // Click en Avatar
+        // Avatar
         document.getElementById('avatarContainer').onclick = () => document.getElementById('avatarInput').click();
+
         document.getElementById('avatarInput').onchange = async (e) => {
             if (e.target.files[0]) {
-                const base64 = await readFile(e.target.files[0]);
-                profilePic.src = base64; // Preview rápido
-                await saveUserProfile({ photoBase64: base64 }); // Guardar en DB
-            }
-        };
+                const file = e.target.files[0];
+                // 1. Mostrar preview inmediato
+                profilePic.src = URL.createObjectURL(file);
 
-        // Click en Portada
-        document.getElementById('coverPhoto').onclick = (e) => {
-            if (e.target === document.querySelector('.edit-cover-btn') || e.target === document.getElementById('coverPhoto')) {
-                document.getElementById('coverInput').click();
-            }
-        }
-        document.getElementById('coverInput').onchange = async (e) => {
-            if (e.target.files[0]) {
-                const base64 = await readFile(e.target.files[0]);
-                coverPhoto.style.backgroundImage = `url('${base64}')`;
-                await saveUserProfile({ coverBase64: base64 });
+                // 2. Subir
+                try {
+                    const uploadRes = await uploadFile(file);
+                    if (uploadRes.success) {
+                        // 3. Actualizar URL en DB
+                        await updateProfileData({ photoURL: uploadRes.url });
+                    } else {
+                        alert('Error subiendo imagen');
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
             }
         };
 
@@ -339,22 +328,22 @@
             const newName = prompt("Ingresa tu nuevo nombre:", userName.textContent);
             if (newName && newName.trim() !== "") {
                 userName.textContent = newName;
-                await saveUserProfile({ displayName: newName });
+                await updateProfileData({ displayName: newName });
             }
         };
 
         // --- 3. PUBLICACIONES ---
 
         // Preview imagen post
-        document.getElementById('postImageInput').onchange = async (e) => {
+        document.getElementById('postImageInput').onchange = (e) => {
             if (e.target.files[0]) {
-                selectedPostImage = await readFile(e.target.files[0]);
-                document.getElementById('imagePreview').src = selectedPostImage;
+                selectedPostImageFile = e.target.files[0];
+                document.getElementById('imagePreview').src = URL.createObjectURL(selectedPostImageFile);
                 document.getElementById('previewContainer').style.display = 'block';
             }
         };
         window.clearImage = () => {
-            selectedPostImage = null;
+            selectedPostImageFile = null;
             document.getElementById('postImageInput').value = '';
             document.getElementById('previewContainer').style.display = 'none';
         }
@@ -362,69 +351,86 @@
         // Publicar Post
         document.getElementById('publishBtn').onclick = async () => {
             const content = document.getElementById('postContent').value;
-            if (!content.trim() && !selectedPostImage) return;
+            if (!content.trim() && !selectedPostImageFile) return;
 
             const btn = document.getElementById('publishBtn');
             btn.disabled = true;
             btn.textContent = 'Publicando...';
 
             try {
-                // Guardamos la foto actual del perfil para que salga en el post
-                const currentAvatar = userData.photoBase64 || 'https://placehold.co/40';
+                let imageUrl = null;
 
-                await addDoc(collection(db, "posts"), {
-                    userId: currentUser.uid,
-                    userName: userData.displayName || 'Usuario',
-                    userPhoto: currentAvatar, // Guardamos snapshot de la foto actual
-                    content: content,
-                    imageUrl: selectedPostImage,
-                    timestamp: serverTimestamp()
+                // 1. Subir imagen si existe
+                if (selectedPostImageFile) {
+                    const upRes = await uploadFile(selectedPostImageFile);
+                    if (upRes.success) imageUrl = upRes.url;
+                }
+
+                // 2. Crear Post en MySQL
+                const response = await fetch('php/create_post.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        firebase_uid: currentUser.uid,
+                        content: content,
+                        imageUrl: imageUrl
+                    })
                 });
 
-                // Reset
-                document.getElementById('postContent').value = '';
-                clearImage();
-                btn.disabled = false;
-                btn.textContent = 'Publicar';
-                alert('¡Publicado!');
+                const result = await response.json();
+
+                if (result.success) {
+                    // Reset UI
+                    document.getElementById('postContent').value = '';
+                    clearImage();
+                    alert('¡Publicado!');
+                    loadMyPosts(currentUser.uid); // Recargar
+                } else {
+                    alert('Error: ' + result.message);
+                }
+
             } catch (e) {
                 console.error(e);
                 alert('Error al publicar');
+            } finally {
                 btn.disabled = false;
+                btn.textContent = 'Publicar';
             }
         };
 
-        // Cargar Mis Posts
-        function loadMyPosts(uid) {
-            const q = query(collection(db, "posts"), where("userId", "==", uid), orderBy("timestamp", "desc"));
+        // Cargar Mis Posts desde MySQL
+        async function loadMyPosts(uid) {
+            const container = document.getElementById('myPostsFeed');
+            try {
+                const response = await fetch(`php/get_my_posts.php?firebase_uid=${uid}`);
+                const result = await response.json();
 
-            onSnapshot(q, (snapshot) => {
-                const container = document.getElementById('myPostsFeed');
                 container.innerHTML = '';
 
-                if (snapshot.empty) {
+                if (!result.success || result.posts.length === 0) {
                     container.innerHTML = '<p class="text-muted text-center">No has publicado nada aún.</p>';
                     return;
                 }
 
-                snapshot.forEach(doc => {
-                    const post = doc.data();
+                result.posts.forEach(post => {
                     const html = `
                         <div class="post-card">
                             <div class="d-flex align-items-center gap-2 mb-2">
-                                <img src="${post.userPhoto}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                                <img src="${post.userPhoto || 'https://placehold.co/40'}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
                                 <div>
-                                    <h6 class="m-0 fw-bold">${post.userName}</h6>
+                                    <h6 class="m-0 fw-bold">${post.userName || 'Usuario'}</h6>
                                     <small class="text-muted">Tus publicaciones</small>
                                 </div>
                             </div>
-                            <div class="mb-2">${post.content || ''}</div>
-                            ${post.imageUrl ? `<img src="${post.imageUrl}" class="w-100 rounded">` : ''}
+                            <div class="mb-2">${post.contenido_texto || ''}</div>
+                            ${post.contenido_foto_url ? `<img src="${post.contenido_foto_url}" class="w-100 rounded">` : ''}
                         </div>
                     `;
                     container.innerHTML += html;
                 });
-            });
+            } catch (e) {
+                container.innerHTML = '<p class="text-danger text-center">Error cargando posts.</p>';
+            }
         }
     </script>
 </body>

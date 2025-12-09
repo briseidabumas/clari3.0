@@ -103,6 +103,51 @@
             border-radius: 8px;
             border: 1px solid #eee;
         }
+
+        /* --- Estilos Comentarios --- */
+        .comments-section {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .comment-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .comment-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .comment-bubble {
+            background: #e9ecef;
+            border-radius: 15px;
+            padding: 8px 12px;
+            flex: 1;
+        }
+
+        .comment-author {
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: block;
+        }
+
+        .comment-text {
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .comment-time {
+            font-size: 0.75rem;
+            color: #65676b;
+            margin-left: 5px;
+        }
     </style>
 </head>
 
@@ -164,7 +209,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
         import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
-        import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
         // Configuración Firebase (Clari3)
         const firebaseConfig = {
@@ -187,12 +232,17 @@
         const createPostName = document.getElementById('createPostName');
         const postsFeed = document.getElementById('postsFeed');
 
+        let currentUserUid = null;
+
         // Autenticación
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                currentUserUid = user.uid;
                 let userPhoto = user.photoURL || 'https://placehold.co/40';
                 let userName = user.displayName || 'Usuario';
 
+                // Intentar obtener foto actualizada de Firestore/MySQL si es necesario (opcional)
+                // Por ahora usamos la de auth y si acaso Firestore
                 try {
                     const userDoc = await getDoc(doc(db, "users", user.uid));
                     if (userDoc.exists()) {
@@ -200,9 +250,7 @@
                         if (userData.photoBase64) userPhoto = userData.photoBase64;
                         if (userData.displayName) userName = userData.displayName;
                     }
-                } catch (e) {
-                    console.log("No se pudo cargar perfil extendido");
-                }
+                } catch (e) { }
 
                 navUserPhoto.src = userPhoto;
                 navUserName.textContent = userName.split(' ')[0];
@@ -219,50 +267,150 @@
             signOut(auth).then(() => location.href = 'index.html');
         });
 
-        // Cargar Posts
-        function loadPosts() {
-            const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
+        // Cargar Posts desde MySQL
+        async function loadPosts() {
+            try {
+                const response = await fetch('php/get_posts.php');
+                const result = await response.json();
 
-            onSnapshot(q, (snapshot) => {
                 postsFeed.innerHTML = '';
 
-                if (snapshot.empty) {
+                if (!result.success || result.posts.length === 0) {
                     postsFeed.innerHTML = '<div class="alert alert-info text-center">No hay publicaciones aún.</div>';
                     return;
                 }
 
-                snapshot.forEach((doc) => {
-                    const post = doc.data();
-                    const timeAgo = formatTime(post.timestamp);
+                result.posts.forEach((post) => {
+                    const timeAgo = formatTime(post.fecha_publicacion);
+                    const userPhoto = post.userPhoto || 'https://placehold.co/40';
+                    const userName = post.userName || 'Usuario';
+                    const content = post.contenido_texto || '';
+                    const imageUrl = post.contenido_foto_url;
+                    const postId = post.id_publicacion;
 
+                    // NOTA: Se eliminó el botón de Me Gusta
                     const html = `
                         <div class="post-card">
                             <div class="post-header">
-                                <img src="${post.userPhoto}" class="post-avatar">
+                                <img src="${userPhoto}" class="post-avatar">
                                 <div class="post-info">
-                                    <h6>${post.userName}</h6>
+                                    <h6>${userName}</h6>
                                     <span class="post-time">${timeAgo} <i class="fas fa-globe-americas"></i></span>
                                 </div>
                             </div>
-                            <div class="post-content">${post.content || ''}</div>
-                            ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image">` : ''}
+                            <div class="post-content">${content}</div>
+                            ${imageUrl ? `<img src="${imageUrl}" class="post-image">` : ''}
                             
                             <hr class="my-2" style="opacity: 0.1">
-                            <div class="d-flex justify-content-around">
-                                <button class="btn btn-light w-100 btn-sm text-secondary fw-bold action-btn"><i class="far fa-thumbs-up"></i> Me gusta</button>
-                                <button class="btn btn-light w-100 btn-sm text-secondary fw-bold action-btn" onclick="alert('Función de comentarios en desarrollo')"><i class="far fa-comment-alt"></i> Comentar</button>
+                            
+                            <div class="d-flex justify-content-center">
+                                <button class="btn btn-light w-100 btn-sm text-secondary fw-bold action-btn" onclick="toggleComments(${postId})">
+                                    <i class="far fa-comment-alt"></i> Comentar / Ver Comentarios
+                                </button>
+                            </div>
+
+                            <div id="comments-container-${postId}" class="comments-section" style="display: none;">
+                                <div id="comments-list-${postId}"></div>
+                                
+                                <div class="d-flex gap-2 mt-2 align-items-center">
+                                    <input type="text" id="comment-input-${postId}" class="form-control form-control-sm rounded-pill" placeholder="Escribe un comentario...">
+                                    <button class="btn btn-primary btn-sm rounded-circle" onclick="submitComment(${postId})">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     `;
                     postsFeed.innerHTML += html;
                 });
-            });
+            } catch (error) {
+                console.error("Error cargando posts:", error);
+                postsFeed.innerHTML = '<div class="alert alert-danger text-center">Error cargando publicaciones.</div>';
+            }
         }
 
-        // Helper tiempo
+        // --- FUNCIONES GLOBALES PARA COMENTARIOS ---
+
+        window.toggleComments = async (postId) => {
+            const container = document.getElementById(`comments-container-${postId}`);
+            const list = document.getElementById(`comments-list-${postId}`);
+
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                list.innerHTML = '<div class="text-center py-2"><div class="spinner-border spinner-border-sm"></div></div>';
+
+                try {
+                    const res = await fetch(`php/get_comments.php?post_id=${postId}`);
+                    const data = await res.json();
+
+                    if (data.success) {
+                        list.innerHTML = '';
+                        if (data.comments.length === 0) {
+                            list.innerHTML = '<small class="text-muted d-block text-center mb-2">Sé el primero en comentar.</small>';
+                        }
+
+                        data.comments.forEach(c => {
+                            const cPhoto = c.userPhoto || 'https://placehold.co/32';
+                            const cTime = formatTime(c.fecha_comentario);
+                            list.innerHTML += `
+                                <div class="comment-item">
+                                    <img src="${cPhoto}" class="comment-avatar">
+                                    <div class="comment-bubble">
+                                        <span class="comment-author">${c.userName} <span class="text-muted fw-normal" style="font-size:0.7rem">${cTime}</span></span>
+                                        <p class="comment-text">${c.contenido_texto}</p>
+                                    </div>
+                                </div>
+                             `;
+                        });
+                    }
+                } catch (e) {
+                    list.innerHTML = '<small class="text-danger">Error cargando.</small>';
+                }
+            } else {
+                container.style.display = 'none';
+            }
+        };
+
+        window.submitComment = async (postId) => {
+            const input = document.getElementById(`comment-input-${postId}`);
+            const content = input.value;
+
+            if (!content.trim()) return;
+
+            input.disabled = true;
+
+            try {
+                const response = await fetch('php/create_comment.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        firebase_uid: currentUserUid,
+                        post_id: postId,
+                        content: content
+                    })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    input.value = '';
+                    // Recargar comentarios cerrando y abriendo (truco rápido)
+                    const container = document.getElementById(`comments-container-${postId}`);
+                    container.style.display = 'none';
+                    toggleComments(postId);
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                input.disabled = false;
+                input.focus();
+            }
+        };
+
         function formatTime(timestamp) {
             if (!timestamp) return 'Justo ahora';
-            const date = timestamp.toDate();
+            const date = new Date(timestamp);
             const now = new Date();
             const seconds = Math.floor((now - date) / 1000);
 

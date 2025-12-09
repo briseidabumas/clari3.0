@@ -136,15 +136,36 @@ facebookBtn.addEventListener('click', () => {
 });
 
 // 9. Observador de Estado (Redirección centralizada)
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (user) {
-        // Guardar en Storage
-        localStorage.setItem('firebaseUser', JSON.stringify({
-            uid: user.uid,
-            displayName: user.displayName || user.email.split('@')[0],
-            email: user.email,
-            photoURL: user.photoURL || 'https://placehold.co/40'
-        }));
+        // Sincronizar con Base de Datos MySQL
+        try {
+            const syncResponse = await fetch('php/sync_user.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    firebase_uid: user.uid,
+                    email: user.email,
+                    displayName: user.displayName,
+                    photoURL: user.photoURL
+                })
+            });
+            const syncData = await syncResponse.json();
+
+            if (syncData.success) {
+                console.log("Usuario sincronizado con MySQL:", syncData.user);
+                // Guardar datos combinados
+                localStorage.setItem('firebaseUser', JSON.stringify({
+                    uid: user.uid,
+                    displayName: syncData.user.nombre_completo,
+                    email: user.email,
+                    photoURL: syncData.user.foto_perfil_url || user.photoURL,
+                    dbId: syncData.user.id_usuario // ID de MySQL
+                }));
+            }
+        } catch (e) {
+            console.error("Error sincronizando usuario:", e);
+        }
 
         // Redirigir
         setTimeout(() => {

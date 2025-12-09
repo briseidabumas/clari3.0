@@ -71,10 +71,11 @@
                         Google
                     </button>
 
-                    <!-- Botón Facebook -->
-                    <button type="button" id="facebookBtn" class="btn btn-social btn-facebook-custom">
-                        <i class="fab fa-facebook-f"></i>
-                        Facebook
+                    <!-- Botón Twitter/X -->
+                    <button type="button" id="twitterBtn" class="btn btn-social btn-twitter-custom"
+                        style="background-color: black; color: white;">
+                        <i class="fab fa-x-twitter"></i>
+                        X (Twitter)
                     </button>
                 </div>
             </form>
@@ -90,25 +91,7 @@
         </div>
     </div>
     <!-- Script SDK de Facebook (Opcional pero recomendado por Facebook) -->
-    <script>
-        window.fbAsyncInit = function () {
-            FB.init({
-                appId: '1320611453204321', // Tu ID Real
-                cookie: true,
-                xfbml: true,
-                version: 'v18.0'
-            });
-            FB.AppEvents.logPageView();
-        };
-
-        (function (d, s, id) {
-            var js, fjs = d.getElementsByTagName(s)[0];
-            if (d.getElementById(id)) { return; }
-            js = d.createElement(s); js.id = id;
-            js.src = "https://connect.facebook.net/en_US/sdk.js";
-            fjs.parentNode.insertBefore(js, fjs);
-        }(document, 'script', 'facebook-jssdk'));
-    </script>
+    <!-- Script SDK de Facebook Eliminado -->
     <script type="module" src="app.js"></script>
 </body>
 

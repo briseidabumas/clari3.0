@@ -4,7 +4,7 @@ import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.6.0/firebase
 import {
     getAuth,
     GoogleAuthProvider,
-    FacebookAuthProvider,
+    TwitterAuthProvider,
     signInWithPopup,
     onAuthStateChanged,
     signOut,
@@ -28,7 +28,7 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
-const facebookProvider = new FacebookAuthProvider();
+const twitterProvider = new TwitterAuthProvider();
 
 // 4. Referencias DOM
 const authForm = document.getElementById('authForm');
@@ -115,23 +115,26 @@ googleBtn.addEventListener('click', () => {
         });
 });
 
-// 8. Manejar Login con Facebook
-facebookBtn.addEventListener('click', () => {
-    errorMessage.style.display = 'none';
-    facebookBtn.disabled = true;
+// 8. Manejar Login con Twitter/X
+const twitterBtn = document.getElementById('twitterBtn');
 
-    signInWithPopup(auth, facebookProvider)
+twitterBtn.addEventListener('click', () => {
+    errorMessage.style.display = 'none';
+    twitterBtn.disabled = true;
+
+    signInWithPopup(auth, twitterProvider)
         .then((result) => {
-            console.log("Facebook Login exitoso:", result.user);
+            console.log("Twitter Login exitoso:", result.user);
+            // La redirección ocurre automáticamente en onAuthStateChanged
         })
         .catch((error) => {
-            console.error("Error Facebook:", error);
+            console.error("Error Twitter:", error);
             if (error.code === 'auth/account-exists-with-different-credential') {
-                showError({ code: 'custom', message: 'Ya existe una cuenta con este correo pero usa otro método (Google o Contraseña). Inicia sesión con ese método primero.' });
+                showError({ code: 'custom', message: 'Ya existe una cuenta con este correo pero usa otro método. Inicia sesión con ese método primero.' });
             } else {
                 showError(error);
             }
-            facebookBtn.disabled = false;
+            twitterBtn.disabled = false;
         });
 });
 
@@ -185,6 +188,7 @@ function showError(error) {
     if (error.code === 'auth/invalid-email') msg = "Correo electrónico inválido.";
     if (error.code === 'auth/weak-password') msg = "La contraseña debe tener al menos 6 caracteres.";
     if (error.code === 'auth/popup-closed-by-user') msg = "Ventana cerrada antes de terminar.";
+    if (error.code === 'auth/invalid-credential') msg = "Error de configuración: Las claves de Twitter (API Key/Secret) en Firebase son incorrectas o no coinciden.";
     if (error.code === 'custom') msg = error.message;
 
     errorMessage.textContent = msg;

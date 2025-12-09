@@ -5,6 +5,7 @@ import {
     getAuth,
     GoogleAuthProvider,
     TwitterAuthProvider,
+    GithubAuthProvider,
     signInWithPopup,
     onAuthStateChanged,
     signOut,
@@ -29,6 +30,7 @@ const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 const twitterProvider = new TwitterAuthProvider();
+const githubProvider = new GithubAuthProvider();
 
 // 4. Referencias DOM
 const authForm = document.getElementById('authForm');
@@ -135,6 +137,29 @@ twitterBtn.addEventListener('click', () => {
                 showError(error);
             }
             twitterBtn.disabled = false;
+        });
+});
+
+// 9. Manejar Login con GitHub
+const githubBtn = document.getElementById('githubBtn');
+
+githubBtn.addEventListener('click', () => {
+    errorMessage.style.display = 'none';
+    githubBtn.disabled = true;
+
+    signInWithPopup(auth, githubProvider)
+        .then((result) => {
+            console.log("GitHub Login exitoso:", result.user);
+            // La redirección ocurre automáticamente en onAuthStateChanged
+        })
+        .catch((error) => {
+            console.error("Error GitHub:", error);
+            if (error.code === 'auth/account-exists-with-different-credential') {
+                showError({ code: 'custom', message: 'Ya existe una cuenta con este correo pero usa otro método. Inicia sesión con ese método primero.' });
+            } else {
+                showError(error);
+            }
+            githubBtn.disabled = false;
         });
 });
 
